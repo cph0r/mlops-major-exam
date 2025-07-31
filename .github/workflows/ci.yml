@@ -1,127 +1,229 @@
-name: MLOps CI/CD Pipeline
+name: MLOps Pipeline CI/CD
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly training on Mondays at 2 AM
+
+env:
+  PYTHON_VERSION: '3.9'
+  DOCKER_IMAGE: california-housing-predictor
+  DOCKER_TAG: latest
 
 jobs:
-  test_suite:
+  code-quality:
+    name: Code Quality & Linting
     runs-on: ubuntu-latest
-    name: Run Test Suite
-
+    timeout-minutes: 10
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+      
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
-
+        python-version: ${{ env.PYTHON_VERSION }}
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
-    - name: Run tests
+        
+    - name: Run Black (code formatting)
       run: |
-        cd src && python -m pytest ../tests/ -v
+        black --check --diff src/ tests/
+        
+    - name: Run Flake8 (linting)
+      run: |
+        flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+        
+    - name: Run MyPy (type checking)
+      run: |
+        mypy src/ --ignore-missing-imports --disallow-untyped-defs
 
-  train_and_quantize:
+  test:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    name: Train Model and Quantize
-    needs: test_suite
-
+    needs: code-quality
+    timeout-minutes: 15
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
+      
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
-
+        python-version: ${{ env.PYTHON_VERSION }}
+        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-
-    - name: Create models directory
+        
+    - name: Create necessary directories
       run: |
-        mkdir -p models
+        mkdir -p models logs data output
+        
+    - name: Run tests with coverage
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
 
+  train:
+    name: Model Training
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create necessary directories
+      run: |
+        mkdir -p models logs data output
+        
     - name: Train model
       run: |
-        cd src
-        python train.py
-
+        python src/train.py
+        
     - name: Quantize model
       run: |
-        cd src
-        python quantize.py
-
-    - name: Verify artifacts exist
-      run: |
-        echo "Contents of models directory:"
-        ls -la models/
-        echo "Current working directory:"
-        pwd
-        echo "All files in current directory:"
-        find . -name "*.joblib" -type f
-
+        python src/quantize.py
+        
     - name: Upload model artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
-        name: model-artifacts
+        name: trained-models
         path: |
-          src/models/
+          models/
+          logs/
         retention-days: 30
-        if-no-files-found: error
 
-  build_and_test_container:
+  build-and-test-docker:
+    name: Build & Test Docker Image
     runs-on: ubuntu-latest
-    name: Build and Test Docker Container
-    needs: train_and_quantize
-
+    needs: train
+    timeout-minutes: 20
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Create models directory
-      run: |
-        mkdir -p models
-
+      
     - name: Download model artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v3
       with:
-        name: model-artifacts
-        path: models/
-
-    - name: Verify downloaded artifacts
-      run: |
-        echo "Downloaded artifacts:"
-        ls -la models/
-        echo "Checking for required model files:"
-        test -f models/linear_regression_model.joblib && echo "Main model found" || echo "Main model missing"
-        test -f models/unquant_params.joblib && echo "Unquant params found" || echo "Unquant params missing"
-        test -f models/quant_params.joblib && echo "Quant params found" || echo "Quant params missing"
-
+        name: trained-models
+        path: ./
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
     - name: Build Docker image
       run: |
-        docker build -t mlops-linear-regression .
-
-    - name: Test Docker container
+        docker build -t ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} .
+        docker build -t ${{ env.DOCKER_IMAGE }}:dev --target development .
+        
+    - name: Test Docker image
       run: |
-        docker run --rm mlops-linear-regression
+        docker run --rm ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} python -c "import sklearn; print('Docker image test passed')"
+        
+    - name: Run containerized tests
+      run: |
+        docker run --rm ${{ env.DOCKER_IMAGE }}:dev pytest tests/ -v
+        
+    - name: Test model prediction
+      run: |
+        docker run --rm ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }} python src/predict.py
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-test-docker
+    timeout-minutes: 15
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-test-docker, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    timeout-minutes: 10
+    
+    steps:
+    - name: Deploy to staging environment
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your staging deployment logic here
+        # Example: kubectl apply, docker push to registry, etc.
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-test-docker, security-scan]
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 15
+    
+    steps:
+    - name: Deploy to production environment
+      run: |
+        echo "Deploying to production environment..."
+        # Add your production deployment logic here
+        # Example: kubectl apply, docker push to registry, etc.
+
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ Pipeline completed successfully!"
+        # Add notification logic (Slack, email, etc.)
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Pipeline failed!"
+        # Add notification logic (Slack, email, etc.)
