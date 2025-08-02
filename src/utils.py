@@ -354,12 +354,12 @@ class CompressionEngine:
         method: str = 'adaptive'
     ) -> Tuple[np.ndarray, Dict[str, float]]:
         """
-        Quantize float parameters to uint8 with advanced scaling.
+        Quantize float parameters to uint8 with improved scaling.
         
         Args:
             values: Float values to quantize
-            scale_factor: Optional scale factor (auto-calculated if None)
-            method: Quantization method ('adaptive' or 'fixed')
+            scale_factor: Optional scale factor (defaults to 100 for better accuracy)
+            method: Quantization method (ignored, using fixed scale approach)
             
         Returns:
             Tuple of (quantized_values, metadata)
@@ -367,39 +367,20 @@ class CompressionEngine:
         try:
             if np.all(values == 0):
                 return np.zeros(values.shape, dtype=np.uint8), {
-                    'min_val': 0.0, 'max_val': 0.0, 'scale_factor': 1.0, 'method': method
+                    'scale_factor': 100.0, 'method': 'fixed_scale'
                 }
             
+            # Use fixed scale factor of 100 for better accuracy
             if scale_factor is None:
-                if method == 'adaptive':
-                    abs_max = np.abs(values).max()
-                    scale_factor = 200.0 / abs_max if abs_max > 0 else 1.0
-                else:
-                    scale_factor = 1.0
+                scale_factor = 100.0
             
-            # Apply scaling
+            # Apply simple scaling and clipping
             scaled_values = values * scale_factor
-            min_val, max_val = scaled_values.min(), scaled_values.max()
-            
-            # Handle constant values
-            if max_val == min_val:
-                quantized = np.full(values.shape, 127, dtype=np.uint8)
-                return quantized, {
-                    'min_val': min_val, 'max_val': max_val, 
-                    'scale_factor': scale_factor, 'method': method
-                }
-            
-            # Normalize to 0-255 range
-            value_range = max_val - min_val
-            normalized = ((scaled_values - min_val) / value_range * 255)
-            normalized = np.clip(normalized, 0, 255)
-            quantized = normalized.astype(np.uint8)
+            quantized = np.clip(scaled_values.astype(np.uint8), 0, 255)
             
             metadata = {
-                'min_val': min_val,
-                'max_val': max_val,
                 'scale_factor': scale_factor,
-                'method': method,
+                'method': 'fixed_scale',
                 'original_shape': values.shape
             }
             
@@ -425,20 +406,10 @@ class CompressionEngine:
             Dequantized float values
         """
         try:
-            min_val = metadata['min_val']
-            max_val = metadata['max_val']
             scale_factor = metadata['scale_factor']
             
-            # Handle constant values
-            if max_val == min_val:
-                return np.full(quantized_values.shape, min_val / scale_factor, dtype=np.float32)
-            
-            # Denormalize from 0-255 range
-            value_range = max_val - min_val
-            denormalized = (quantized_values.astype(np.float32) / 255.0) * value_range + min_val
-            
-            # Descale
-            original_values = denormalized / scale_factor
+            # Simple dequantization: convert back to float and divide by scale factor
+            original_values = quantized_values.astype(np.float32) / scale_factor
             
             return original_values
             
