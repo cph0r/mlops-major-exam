@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-Utility functions for California Housing Price Prediction Pipeline
+Utility functions for Real Estate Valuation System
 
 This module provides comprehensive utility functions for data processing,
 model management, and quantization operations used throughout the ML pipeline.
 
-Author: ML Engineering Team
-Date: 2024
 """
 
 import os
@@ -22,13 +20,13 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 
-# Configure logging
+# Configure logging system
 logger = logging.getLogger(__name__)
 
 
-class DataManager:
+class DatasetHandler:
     """
-    Comprehensive data management utility for housing dataset operations.
+    Comprehensive dataset management utility for real estate data operations.
     """
     
     @staticmethod
@@ -52,26 +50,26 @@ class DataManager:
             RuntimeError: If dataset loading fails
         """
         try:
-            logger.info("📊 Loading California Housing dataset...")
+            logger.info("Loading California Housing dataset...")
             
             # Fetch dataset
-            housing_data = fetch_california_housing()
-            X, y = housing_data.data, housing_data.target
+            housing_dataset = fetch_california_housing()
+            feature_matrix, target_vector = housing_dataset.data, housing_dataset.target
             
             # Validate data integrity
-            if X is None or y is None:
+            if feature_matrix is None or target_vector is None:
                 raise ValueError("Dataset contains null values")
             
-            if X.shape[0] != y.shape[0]:
+            if feature_matrix.shape[0] != target_vector.shape[0]:
                 raise ValueError("Feature and target arrays have different lengths")
             
             # Perform train-test split
             X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=test_size, random_state=random_state, shuffle=shuffle
+                feature_matrix, target_vector, test_size=test_size, random_state=random_state, shuffle=shuffle
             )
             
-            logger.info(f"✅ Dataset loaded successfully:")
-            logger.info(f"   Total samples: {X.shape[0]}")
+            logger.info(f"Dataset loaded successfully:")
+            logger.info(f"   Total samples: {feature_matrix.shape[0]}")
             logger.info(f"   Training samples: {X_train.shape[0]}")
             logger.info(f"   Test samples: {X_test.shape[0]}")
             logger.info(f"   Features: {X_train.shape[1]}")
@@ -133,7 +131,7 @@ class DataManager:
             if y_train.min() < 0 or y_test.min() < 0:
                 logger.warning("⚠️  Negative target values detected")
             
-            logger.info("✅ Data quality validation passed")
+            logger.info("Data quality validation passed")
             return True
             
         except Exception as e:
@@ -141,7 +139,7 @@ class DataManager:
             raise ValueError(f"Data quality issues: {str(e)}")
 
 
-class ModelManager:
+class ModelHandler:
     """
     Advanced model management utilities for training and deployment.
     """
@@ -166,17 +164,17 @@ class ModelManager:
             Configured LinearRegression model
         """
         try:
-            logger.info("🔧 Creating LinearRegression model...")
+            logger.info("Creating LinearRegression model...")
             
-            model = LinearRegression(
+            regression_model = LinearRegression(
                 fit_intercept=fit_intercept,
                 copy_X=copy_X,
                 n_jobs=n_jobs,
                 positive=positive
             )
             
-            logger.info("✅ Model created successfully")
-            return model
+            logger.info("Model created successfully")
+            return regression_model
             
         except Exception as e:
             logger.error(f"❌ Failed to create model: {str(e)}")
@@ -219,7 +217,7 @@ class ModelManager:
             # Save model
             joblib.dump(model_artifacts, filepath)
             
-            logger.info(f"✅ Model saved successfully to: {filepath}")
+            logger.info(f"Model saved successfully to: {filepath}")
             return str(filepath)
             
         except Exception as e:
@@ -261,7 +259,7 @@ class ModelManager:
             if not isinstance(model, LinearRegression):
                 raise ValueError("Loaded object is not a LinearRegression model")
             
-            logger.info(f"✅ Model loaded successfully from: {filepath}")
+            logger.info(f"Model loaded successfully from: {filepath}")
             return model, metadata
             
         except Exception as e:
@@ -269,9 +267,9 @@ class ModelManager:
             raise
 
 
-class MetricsCalculator:
+class PerformanceAnalyzer:
     """
-    Comprehensive metrics calculation utilities.
+    Comprehensive performance analysis utilities.
     """
     
     @staticmethod
@@ -298,7 +296,7 @@ class MetricsCalculator:
                 raise ValueError("Empty arrays provided")
             
             # Calculate metrics
-            metrics = {
+            performance_metrics = {
                 'r2_score': r2_score(y_true, y_pred),
                 'mse': mean_squared_error(y_true, y_pred),
                 'rmse': np.sqrt(mean_squared_error(y_true, y_pred)),
@@ -309,14 +307,14 @@ class MetricsCalculator:
             
             # Additional statistical metrics
             residuals = y_true - y_pred
-            metrics.update({
+            performance_metrics.update({
                 'residual_std': np.std(residuals),
                 'residual_mean': np.mean(residuals),
                 'max_error': np.max(np.abs(residuals)),
                 'median_absolute_error': np.median(np.abs(residuals))
             })
             
-            return metrics
+            return performance_metrics
             
         except Exception as e:
             logger.error(f"❌ Failed to calculate metrics: {str(e)}")
@@ -344,9 +342,9 @@ class MetricsCalculator:
         print("=" * 50)
 
 
-class QuantizationEngine:
+class CompressionEngine:
     """
-    Advanced quantization utilities for model compression.
+    Advanced compression utilities for model optimization.
     """
     
     @staticmethod
@@ -452,38 +450,38 @@ class QuantizationEngine:
 # Legacy function aliases for backward compatibility
 def load_dataset() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Legacy function for loading dataset."""
-    return DataManager.load_california_housing_dataset()
+    return DatasetHandler.load_california_housing_dataset()
 
 
 def create_model() -> LinearRegression:
     """Legacy function for creating model."""
-    return ModelManager.create_linear_regression_model()
+    return ModelHandler.create_linear_regression_model()
 
 
 def save_model(model: LinearRegression, filepath: str) -> str:
     """Legacy function for saving model."""
-    return ModelManager.save_model_artifacts(model, filepath)
+    return ModelHandler.save_model_artifacts(model, filepath)
 
 
 def load_model(filepath: str) -> LinearRegression:
     """Legacy function for loading model."""
-    model, _ = ModelManager.load_model_artifacts(filepath)
+    model, _ = ModelHandler.load_model_artifacts(filepath)
     return model
 
 
 def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Tuple[float, float]:
     """Legacy function for calculating metrics."""
-    metrics = MetricsCalculator.calculate_regression_metrics(y_true, y_pred)
+    metrics = PerformanceAnalyzer.calculate_regression_metrics(y_true, y_pred)
     return metrics['r2_score'], metrics['mse']
 
 
 def quantize_to_uint8(values: np.ndarray, scale_factor: Optional[float] = None) -> Tuple[np.ndarray, float, float, float]:
     """Legacy function for quantization."""
-    quantized, metadata = QuantizationEngine.quantize_parameters(values, scale_factor)
+    quantized, metadata = CompressionEngine.quantize_parameters(values, scale_factor)
     return quantized, metadata['min_val'], metadata['max_val'], metadata['scale_factor']
 
 
 def dequantize_from_uint8(quantized_values: np.ndarray, min_val: float, max_val: float, scale_factor: float) -> np.ndarray:
     """Legacy function for dequantization."""
     metadata = {'min_val': min_val, 'max_val': max_val, 'scale_factor': scale_factor}
-    return QuantizationEngine.dequantize_parameters(quantized_values, metadata)
+    return CompressionEngine.dequantize_parameters(quantized_values, metadata)

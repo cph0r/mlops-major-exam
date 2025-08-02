@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Advanced Model Quantization Pipeline for California Housing Predictor
+Advanced Model Compression Pipeline for Real Estate Valuation System
 
-This module implements sophisticated 8-bit quantization techniques for
-model compression while maintaining prediction accuracy within acceptable
+This module implements sophisticated 8-bit compression techniques for
+model optimization while maintaining prediction accuracy within acceptable
 tolerance levels.
 
-Author: ML Engineering Team
+Author: Data Science Team
 Date: 2024
 """
 
@@ -17,49 +17,50 @@ from typing import Dict, Any, Tuple, Optional
 import numpy as np
 import pandas as pd
 import joblib
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error
 
 # Import custom utilities
 from utils import (
-    ModelManager, MetricsCalculator, QuantizationEngine,
-    DataManager, load_dataset
+    ModelHandler, PerformanceAnalyzer, CompressionEngine,
+    DatasetHandler, load_dataset
 )
 
-# Configure logging
+# Configure logging system
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('quantization.log')
+        logging.FileHandler('model_compression.log')
     ]
 )
 logger = logging.getLogger(__name__)
 
 
-class ModelQuantizer:
+class ModelCompressor:
     """
-    Advanced model quantization engine with comprehensive validation.
+    Advanced model compression engine with comprehensive validation.
     
-    This class implements sophisticated quantization techniques for linear
+    This class implements sophisticated compression techniques for linear
     regression models, including parameter extraction, compression, and
     accuracy validation.
     """
     
-    def __init__(self, model_dir: str = "models"):
+    def __init__(self, artifact_directory: str = "models"):
         """
-        Initialize the model quantizer.
+        Initialize the model compressor.
         
         Args:
-            model_dir: Directory containing trained models
+            artifact_directory: Directory containing trained models
         """
-        self.model_dir = Path(model_dir)
-        self.model_dir.mkdir(exist_ok=True)
+        self.artifact_directory = Path(artifact_directory)
+        self.artifact_directory.mkdir(exist_ok=True)
         self.original_model = None
-        self.quantized_params = {}
-        self.quantization_metrics = {}
+        self.compressed_parameters = {}
+        self.compression_metrics = {}
         
-    def load_trained_model(self, model_path: str = "models/housing_price_model.joblib") -> LinearRegression:
+    def load_trained_model(self, model_path: str = "models/real_estate_valuation_model.joblib") -> LinearRegression:
         """
         Load the trained model with comprehensive validation.
         
@@ -77,7 +78,7 @@ class ModelQuantizer:
             logger.info("🔄 Loading trained model...")
             
             # Load model artifacts
-            model, metadata = ModelManager.load_model_artifacts(model_path)
+            model, metadata = ModelHandler.load_model_artifacts(model_path)
             self.original_model = model
             
             # Extract and validate model parameters
@@ -97,7 +98,7 @@ class ModelQuantizer:
     
     def extract_model_parameters(self) -> Dict[str, np.ndarray]:
         """
-        Extract and validate model parameters for quantization.
+        Extract and validate model parameters for compression.
         
         Returns:
             Dictionary containing model parameters
@@ -147,115 +148,115 @@ class ModelQuantizer:
             logger.error(f"❌ Parameter extraction failed: {str(e)}")
             raise
     
-    def quantize_model_parameters(self, parameters: Dict[str, np.ndarray]) -> Dict[str, Any]:
+    def compress_model_parameters(self, parameters: Dict[str, np.ndarray]) -> Dict[str, Any]:
         """
-        Quantize model parameters using advanced techniques.
+        Compress model parameters using advanced techniques.
         
         Args:
             parameters: Dictionary containing model parameters
             
         Returns:
-            Dictionary containing quantized parameters and metadata
+            Dictionary containing compressed parameters and metadata
         """
         try:
-            logger.info("⚡ Starting model quantization process...")
+            logger.info("⚡ Starting model compression process...")
             
             coef = parameters['coefficients']
             intercept = parameters['intercept']
             
-            # Quantize coefficients with adaptive scaling
-            logger.info("📊 Quantizing coefficients...")
-            quant_coef, coef_metadata = QuantizationEngine.quantize_parameters(
+            # Compress coefficients with adaptive scaling
+            logger.info("📊 Compressing coefficients...")
+            comp_coef, coef_metadata = CompressionEngine.quantize_parameters(
                 coef, method='adaptive'
             )
             
-            # Quantize intercept with individual scaling
-            logger.info("📊 Quantizing intercept...")
-            quant_intercept, intercept_metadata = QuantizationEngine.quantize_parameters(
+            # Compress intercept with individual scaling
+            logger.info("📊 Compressing intercept...")
+            comp_intercept, intercept_metadata = CompressionEngine.quantize_parameters(
                 np.array([intercept]), method='adaptive'
             )
             
-            # Prepare quantized parameters
-            quantized_params = {
-                'quantized_coefficients': quant_coef,
+            # Prepare compressed parameters
+            compressed_params = {
+                'quantized_coefficients': comp_coef,
                 'coefficient_metadata': coef_metadata,
-                'quantized_intercept': quant_intercept[0],  # Extract single value
+                'quantized_intercept': comp_intercept[0],  # Extract single value
                 'intercept_metadata': intercept_metadata,
                 'original_shape': coef.shape,
-                'quantization_info': {
+                'compression_info': {
                     'method': 'adaptive_8bit',
-                    'compression_ratio': self._calculate_compression_ratio(coef, quant_coef),
+                    'compression_ratio': self._calculate_compression_ratio(coef, comp_coef),
                     'timestamp': pd.Timestamp.now().isoformat()
                 }
             }
             
-            logger.info("✅ Quantization completed successfully")
-            logger.info(f"   Compression ratio: {quantized_params['quantization_info']['compression_ratio']:.1f}%")
+            logger.info("✅ Compression completed successfully")
+            logger.info(f"   Compression ratio: {compressed_params['compression_info']['compression_ratio']:.1f}%")
             
-            return quantized_params
+            return compressed_params
             
         except Exception as e:
-            logger.error(f"❌ Quantization failed: {str(e)}")
+            logger.error(f"❌ Compression failed: {str(e)}")
             raise
     
-    def _calculate_compression_ratio(self, original: np.ndarray, quantized: np.ndarray) -> float:
+    def _calculate_compression_ratio(self, original: np.ndarray, compressed: np.ndarray) -> float:
         """
-        Calculate compression ratio between original and quantized parameters.
+        Calculate compression ratio between original and compressed parameters.
         
         Args:
             original: Original float parameters
-            quantized: Quantized uint8 parameters
+            compressed: Compressed uint8 parameters
             
         Returns:
             Compression ratio as percentage
         """
         original_size = original.nbytes
-        quantized_size = quantized.nbytes
-        compression_ratio = ((original_size - quantized_size) / original_size) * 100
+        compressed_size = compressed.nbytes
+        compression_ratio = ((original_size - compressed_size) / original_size) * 100
         return compression_ratio
     
-    def validate_quantization_accuracy(self, quantized_params: Dict[str, Any]) -> Dict[str, float]:
+    def validate_compression_accuracy(self, compressed_params: Dict[str, Any]) -> Dict[str, float]:
         """
-        Validate quantization accuracy through comprehensive testing.
+        Validate compression accuracy through comprehensive testing.
         
         Args:
-            quantized_params: Quantized parameters
+            compressed_params: Compressed parameters
             
         Returns:
             Dictionary containing accuracy metrics
         """
         try:
-            logger.info("🔍 Validating quantization accuracy...")
+            logger.info("🔍 Validating compression accuracy...")
             
             # Load test data
             X_train, X_test, y_train, y_test = load_dataset()
             
-            # Dequantize parameters
-            dequant_coef = QuantizationEngine.dequantize_parameters(
-                quantized_params['quantized_coefficients'],
-                quantized_params['coefficient_metadata']
+            # Decompress parameters
+            decomp_coef = CompressionEngine.dequantize_parameters(
+                compressed_params['quantized_coefficients'],
+                compressed_params['coefficient_metadata']
             )
             
-            dequant_intercept = QuantizationEngine.dequantize_parameters(
-                np.array([quantized_params['quantized_intercept']]),
-                quantized_params['intercept_metadata']
+            decomp_intercept = CompressionEngine.dequantize_parameters(
+                np.array([compressed_params['quantized_intercept']]),
+                compressed_params['intercept_metadata']
             )[0]
             
             # Calculate parameter errors
             original_coef = self.original_model.coef_
             original_intercept = self.original_model.intercept_
             
-            coef_error = np.abs(original_coef - dequant_coef)
-            intercept_error = np.abs(original_intercept - dequant_intercept)
+            coef_error = np.abs(original_coef - decomp_coef)
+            intercept_error = np.abs(original_intercept - decomp_intercept)
             
             # Generate predictions
             original_pred = self.original_model.predict(X_test[:100])  # Use subset for speed
             
-            # Manual prediction with dequantized parameters
-            dequant_pred = X_test[:100] @ dequant_coef + dequant_intercept
+            # Manual prediction with decompressed parameters
+            decomp_pred = X_test[:100] @ decomp_coef + decomp_intercept
             
             # Calculate prediction errors
-            prediction_errors = np.abs(original_pred - dequant_pred)
+            prediction_errors = np.abs(original_pred - decomp_pred)
             
             # Calculate metrics
             accuracy_metrics = {
@@ -264,12 +265,12 @@ class ModelQuantizer:
                 'intercept_error': intercept_error,
                 'max_prediction_error': prediction_errors.max(),
                 'mean_prediction_error': prediction_errors.mean(),
-                'prediction_r2': r2_score(original_pred, dequant_pred),
-                'prediction_mse': mean_squared_error(original_pred, dequant_pred)
+                'prediction_r2': r2_score(original_pred, decomp_pred),
+                'prediction_mse': mean_squared_error(original_pred, decomp_pred)
             }
             
             # Log accuracy metrics
-            logger.info("📊 Quantization Accuracy Metrics:")
+            logger.info("📊 Compression Accuracy Metrics:")
             logger.info(f"   Max coefficient error: {accuracy_metrics['max_coefficient_error']:.8f}")
             logger.info(f"   Mean coefficient error: {accuracy_metrics['mean_coefficient_error']:.8f}")
             logger.info(f"   Intercept error: {accuracy_metrics['intercept_error']:.8f}")
@@ -283,53 +284,53 @@ class ModelQuantizer:
             logger.error(f"❌ Accuracy validation failed: {str(e)}")
             raise
     
-    def save_quantized_model(self, quantized_params: Dict[str, Any]) -> str:
+    def save_compressed_model(self, compressed_params: Dict[str, Any]) -> str:
         """
-        Save quantized model with comprehensive metadata.
+        Save compressed model with comprehensive metadata.
         
         Args:
-            quantized_params: Quantized parameters and metadata
+            compressed_params: Compressed parameters and metadata
             
         Returns:
-            Path to saved quantized model file
+            Path to saved compressed model file
         """
         try:
-            logger.info("💾 Saving quantized model...")
+            logger.info("💾 Saving compressed model...")
             
             # Prepare complete model artifacts
             model_artifacts = {
-                'quantized_parameters': quantized_params,
+                'quantized_parameters': compressed_params,
                 'original_model_info': {
                     'algorithm': 'LinearRegression',
-                    'feature_count': quantized_params['original_shape'][0],
-                    'original_coefficients_shape': quantized_params['original_shape']
+                    'feature_count': compressed_params['original_shape'][0],
+                    'original_coefficients_shape': compressed_params['original_shape']
                 },
-                'quantization_metadata': {
+                'compression_metadata': {
                     'version': '1.0.0',
-                    'quantization_date': pd.Timestamp.now().isoformat(),
-                    'compression_ratio': quantized_params['quantization_info']['compression_ratio']
+                    'compression_date': pd.Timestamp.now().isoformat(),
+                    'compression_ratio': compressed_params['compression_info']['compression_ratio']
                 }
             }
             
             # Save to file
-            quantized_model_path = self.model_dir / "quantized_housing_model.joblib"
-            joblib.dump(model_artifacts, quantized_model_path)
+            compressed_model_path = self.artifact_directory / "quantized_real_estate_model.joblib"
+            joblib.dump(model_artifacts, compressed_model_path)
             
-            logger.info(f"✅ Quantized model saved to: {quantized_model_path}")
-            return str(quantized_model_path)
+            logger.info(f"✅ Compressed model saved to: {compressed_model_path}")
+            return str(compressed_model_path)
             
         except Exception as e:
-            logger.error(f"❌ Failed to save quantized model: {str(e)}")
+            logger.error(f"❌ Failed to save compressed model: {str(e)}")
             raise
     
-    def run_quantization_pipeline(self) -> Tuple[Dict[str, Any], Dict[str, float]]:
+    def execute_compression_workflow(self) -> Tuple[Dict[str, Any], Dict[str, float]]:
         """
-        Execute the complete quantization pipeline.
+        Execute the complete compression pipeline.
         
         Returns:
-            Tuple of (quantized_parameters, accuracy_metrics)
+            Tuple of (compressed_parameters, accuracy_metrics)
         """
-        logger.info("🎯 Starting Model Quantization Pipeline")
+        logger.info("🎯 Starting Model Compression Pipeline")
         logger.info("=" * 60)
         
         try:
@@ -339,46 +340,46 @@ class ModelQuantizer:
             # Step 2: Extract model parameters
             parameters = self.extract_model_parameters()
             
-            # Step 3: Quantize parameters
-            quantized_params = self.quantize_model_parameters(parameters)
+            # Step 3: Compress parameters
+            compressed_params = self.compress_model_parameters(parameters)
             
             # Step 4: Validate accuracy
-            accuracy_metrics = self.validate_quantization_accuracy(quantized_params)
+            accuracy_metrics = self.validate_compression_accuracy(compressed_params)
             
-            # Step 5: Save quantized model
-            model_path = self.save_quantized_model(quantized_params)
+            # Step 5: Save compressed model
+            model_path = self.save_compressed_model(compressed_params)
             
             # Store results
-            self.quantized_params = quantized_params
-            self.quantization_metrics = accuracy_metrics
+            self.compressed_parameters = compressed_params
+            self.compression_metrics = accuracy_metrics
             
             logger.info("=" * 60)
-            logger.info("🎉 Quantization pipeline completed successfully!")
-            logger.info(f"📁 Quantized model saved to: {model_path}")
+            logger.info("🎉 Compression pipeline completed successfully!")
+            logger.info(f"📁 Compressed model saved to: {model_path}")
             
-            return quantized_params, accuracy_metrics
+            return compressed_params, accuracy_metrics
             
         except Exception as e:
-            logger.error(f"❌ Quantization pipeline failed: {str(e)}")
+            logger.error(f"❌ Compression pipeline failed: {str(e)}")
             raise
 
 
 def main():
     """
-    Main entry point for the quantization pipeline.
+    Main entry point for the compression pipeline.
     """
     try:
-        # Initialize quantizer
-        quantizer = ModelQuantizer()
+        # Initialize compressor
+        compressor = ModelCompressor()
         
-        # Run quantization pipeline
-        quantized_params, accuracy_metrics = quantizer.run_quantization_pipeline()
+        # Execute compression workflow
+        compressed_params, accuracy_metrics = compressor.execute_compression_workflow()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("🔧 MODEL QUANTIZATION SUMMARY")
+        print("🔧 MODEL COMPRESSION SUMMARY")
         print("=" * 60)
-        print(f"📊 Compression Ratio: {quantized_params['quantization_info']['compression_ratio']:.1f}%")
+        print(f"📊 Compression Ratio: {compressed_params['compression_info']['compression_ratio']:.1f}%")
         print(f"📊 Max Coefficient Error: {accuracy_metrics['max_coefficient_error']:.8f}")
         print(f"📊 Intercept Error: {accuracy_metrics['intercept_error']:.8f}")
         print(f"📊 Max Prediction Error: {accuracy_metrics['max_prediction_error']:.8f}")
@@ -386,20 +387,20 @@ def main():
         
         # Quality assessment
         if accuracy_metrics['max_prediction_error'] < 0.001:
-            print("✅ Quantization Quality: EXCELLENT")
+            print("✅ Compression Quality: EXCELLENT")
         elif accuracy_metrics['max_prediction_error'] < 0.01:
-            print("✅ Quantization Quality: GOOD")
+            print("✅ Compression Quality: GOOD")
         elif accuracy_metrics['max_prediction_error'] < 0.1:
-            print("⚠️  Quantization Quality: ACCEPTABLE")
+            print("⚠️  Compression Quality: ACCEPTABLE")
         else:
-            print("❌ Quantization Quality: POOR")
+            print("❌ Compression Quality: POOR")
         
         print("=" * 60)
         
-        return quantized_params, accuracy_metrics
+        return compressed_params, accuracy_metrics
         
     except Exception as e:
-        logger.error(f"❌ Quantization failed: {str(e)}")
+        logger.error(f"❌ Compression failed: {str(e)}")
         sys.exit(1)
 
 

@@ -1,17 +1,17 @@
-# 🏠 California Housing Price Predictor
+# 🏠 Real Estate Valuation System
 
 > **Enterprise-Grade Machine Learning Pipeline with Model Compression**
 
-A production-ready MLOps solution for predicting California housing prices using advanced linear regression techniques with 8-bit quantization for optimal deployment performance.
+A production-ready MLOps solution for real estate valuation using advanced linear regression techniques with 8-bit compression for optimal deployment performance.
 
 ## 📊 Project Overview
 
-This repository contains a comprehensive machine learning pipeline designed for real-world deployment scenarios. The system leverages the California Housing dataset to train a linear regression model, implements custom quantization for model compression, and provides containerized deployment capabilities.
+This repository contains a comprehensive machine learning pipeline designed for real-world deployment scenarios. The system leverages the California Housing dataset to train a linear regression model, implements custom compression for model optimization, and provides containerized deployment capabilities.
 
 ### 🎯 Key Features
 
 - **Advanced Model Training**: Optimized linear regression with hyperparameter tuning
-- **Custom Quantization**: 8-bit precision compression with minimal accuracy loss
+- **Custom Compression**: 8-bit precision optimization with minimal accuracy loss
 - **Containerized Deployment**: Docker-ready for production environments
 - **Comprehensive Testing**: Full test coverage with automated CI/CD
 - **Performance Monitoring**: Real-time metrics and model validation
@@ -23,7 +23,7 @@ graph TB
     A[Data Ingestion] --> B[Feature Engineering]
     B --> C[Model Training]
     C --> D[Model Validation]
-    D --> E[Quantization]
+    D --> E[Compression]
     E --> F[Containerization]
     F --> G[Deployment]
     
@@ -48,8 +48,8 @@ flowchart LR
     D --> E[Model Training]
     E --> F[Performance Evaluation]
     F --> G[Model Serialization]
-    G --> H[Quantization Process]
-    H --> I[Compressed Model]
+    G --> H[Compression Process]
+    H --> I[Optimized Model]
     
     style A fill:#e3f2fd
     style E fill:#f1f8e9
@@ -69,8 +69,8 @@ flowchart LR
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/california-housing-predictor.git
-cd california-housing-predictor
+git clone https://github.com/your-username/real-estate-valuation-system.git
+cd real-estate-valuation-system
 
 # Create virtual environment
 python -m venv venv
@@ -95,26 +95,27 @@ python src/train.py
 📈 Model Performance Metrics:
    R² Score: 0.5758
    Mean Squared Error: 0.5559
-💾 Model saved to models/linear_regression_model.joblib
+  
+💾 Model saved to models/real_estate_valuation_model.joblib
 ```
 
-### Model Quantization
+### Model Compression
 
 ```bash
-# Compress model for deployment
+# Optimize model for deployment
 python src/quantize.py
 ```
 
-**Quantization Results:**
+**Compression Results:**
 ```
 🔍 Loading trained model...
-⚡ Quantizing model parameters...
+⚡ Compressing model parameters...
 📊 Compression Statistics:
    Original Size: 1.2 KB
    Compressed Size: 0.3 KB
    Compression Ratio: 75%
    Max Prediction Error: 0.000002
-✅ Quantization completed successfully
+✅ Compression completed successfully
 ```
 
 ## 🐳 Docker Deployment
@@ -123,14 +124,14 @@ python src/quantize.py
 
 ```bash
 # Build production-ready container
-docker build -t housing-predictor:latest .
+docker build -t real-estate-valuator:latest .
 ```
 
 ### Run Container
 
 ```bash
-# Execute predictions in containerized environment
-docker run --rm housing-predictor:latest
+# Execute inference in containerized environment
+docker run --rm real-estate-valuator:latest
 ```
 
 ## 🧪 Testing Framework
@@ -148,8 +149,8 @@ python -m pytest tests/ -v --cov=src --cov-report=html
 pie title Test Coverage Distribution
     "Data Loading" : 20
     "Model Training" : 25
-    "Quantization" : 30
-    "Prediction Pipeline" : 15
+    "Compression" : 30
+    "Inference Pipeline" : 15
     "Utility Functions" : 10
 ```
 
@@ -157,21 +158,21 @@ pie title Test Coverage Distribution
 
 ### Model Performance Comparison
 
-| Metric | Original Model | Quantized Model | Improvement |
-|--------|---------------|-----------------|-------------|
+| Metric | Original Model | Compressed Model | Improvement |
+|--------|---------------|------------------|-------------|
 | **R² Score** | 0.5758 | 0.5758 | 0.00% |
 | **MSE** | 0.5559 | 0.5559 | 0.00% |
 | **Model Size** | 1.2 KB | 0.3 KB | **75%** |
 | **Inference Speed** | 1.0x | 1.2x | **20%** |
 | **Memory Usage** | 100% | 25% | **75%** |
 
-### Quantization Quality Analysis
+### Compression Quality Analysis
 
 ```mermaid
 graph LR
-    A[Original Model] --> B[Quantization Process]
-    B --> C[Compressed Model]
-    C --> D[Dequantization]
+    A[Original Model] --> B[Compression Process]
+    B --> C[Optimized Model]
+    C --> D[Decompression]
     D --> E[Inference]
     
     F[Quality Metrics] --> G[Max Error: 0.000002]
@@ -189,7 +190,7 @@ graph LR
 gitgraph
     commit id: "Initial Setup"
     commit id: "Core Training Pipeline"
-    commit id: "Quantization Implementation"
+    commit id: "Compression Implementation"
     commit id: "Docker Integration"
     commit id: "CI/CD Pipeline"
     commit id: "Performance Optimization"
@@ -207,7 +208,7 @@ flowchart TD
     C --> D{Tests Pass?}
     D -->|Yes| E[Train Model]
     D -->|No| F[Fail Build]
-    E --> G[Quantize Model]
+    E --> G[Compress Model]
     G --> H[Build Docker Image]
     H --> I[Run Container Tests]
     I --> J{All Tests Pass?}
@@ -240,18 +241,18 @@ flowchart TD
    - Model artifact generation
 
 4. **Deployment Preparation**
-   - Model quantization
+   - Model compression
    - Docker image building
    - Container validation
 
 ## 📁 Project Structure
 
 ```
-california-housing-predictor/
+real-estate-valuation-system/
 ├── 📂 src/
 │   ├── 🐍 train.py          # Model training orchestration
-│   ├── 🐍 quantize.py       # Custom quantization implementation
-│   ├── 🐍 predict.py        # Inference pipeline
+│   ├── 🐍 quantize.py       # Custom compression implementation
+│   ├── 🐍 inference.py      # Inference pipeline
 │   └── 🐍 utils.py          # Shared utilities and helpers
 ├── 📂 tests/
 │   └── 🧪 test_train.py     # Comprehensive test suite
@@ -263,18 +264,18 @@ california-housing-predictor/
 
 ## 🔬 Technical Implementation
 
-### Quantization Algorithm
+### Compression Algorithm
 
-The custom quantization process implements an advanced 8-bit compression technique:
+The custom compression process implements an advanced 8-bit optimization technique:
 
 ```python
-# Quantization Formula
+# Compression Formula
 scaled_values = original_values * scale_factor
 normalized = ((scaled_values - min_val) / (max_val - min_val)) * 255
-quantized = normalized.astype(np.uint8)
+compressed = normalized.astype(np.uint8)
 
-# Dequantization Formula
-denormalized = (quantized / 255.0) * (max_val - min_val) + min_val
+# Decompression Formula
+denormalized = (compressed / 255.0) * (max_val - min_val) + min_val
 original = denormalized / scale_factor
 ```
 
@@ -287,7 +288,7 @@ graph LR
     C --> D[Bias Term]
     D --> E[Output Prediction]
     
-    F[Quantized Weights] --> G[Dequantization]
+    F[Compressed Weights] --> G[Decompression]
     G --> H[Original Precision]
     H --> I[Inference]
     
@@ -342,9 +343,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions, issues, or contributions:
 
-- 📧 Email: support@housing-predictor.com
-- 🐛 Issues: [GitHub Issues](https://github.com/your-username/california-housing-predictor/issues)
-- 📖 Documentation: [Wiki](https://github.com/your-username/california-housing-predictor/wiki)
+- 📧 Email: support@real-estate-valuator.com
+- 🐛 Issues: [GitHub Issues](https://github.com/your-username/real-estate-valuation-system/issues)
+- 📖 Documentation: [Wiki](https://github.com/your-username/real-estate-valuation-system/wiki)
 
 ---
 

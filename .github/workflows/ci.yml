@@ -1,4 +1,4 @@
-name: MLOps Pipeline CI/CD
+name: Train Test and Build Pipeline
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '0 2 * * 1'  # Weekly training on Mondays at 2 AM
+    - cron: '0 2 * * 1'  
 
 env:
   PYTHON_VERSION: '3.9'
@@ -45,8 +45,8 @@ jobs:
       run: |
         mypy src/ --ignore-missing-imports --disallow-untyped-defs
 
-  test:
-    name: Unit Tests
+  test_suite:
+    name: Test Suite
     runs-on: ubuntu-latest
     needs: code-quality
     timeout-minutes: 15
@@ -80,10 +80,10 @@ jobs:
         flags: unittests
         name: codecov-umbrella
 
-  train:
-    name: Model Training
+  train-and-quantise:
+    name: Train and Quantise
     runs-on: ubuntu-latest
-    needs: test
+    needs: test_suite
     timeout-minutes: 30
     
     steps:
@@ -121,10 +121,10 @@ jobs:
           logs/
         retention-days: 30
 
-  build-and-test-docker:
-    name: Build & Test Docker Image
+  build-and-test-container:
+    name: Build and Test Container
     runs-on: ubuntu-latest
-    needs: train
+    needs: train-and-quantise
     timeout-minutes: 20
     
     steps:
@@ -160,7 +160,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: build-and-test-docker
+    needs: build-and-test-container
     timeout-minutes: 15
     
     steps:
@@ -183,7 +183,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build-and-test-docker, security-scan]
+    needs: [build-and-test-container, security-scan]
     if: github.ref == 'refs/heads/develop'
     timeout-minutes: 10
     
@@ -197,7 +197,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-and-test-docker, security-scan]
+    needs: [build-and-test-container, security-scan]
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 15
     

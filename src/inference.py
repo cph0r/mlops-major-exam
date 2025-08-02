@@ -21,8 +21,8 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
 # Import custom utilities
 from utils import (
-    ModelManager, MetricsCalculator, DataManager,
-    QuantizationEngine, load_dataset
+    ModelHandler, PerformanceAnalyzer, DatasetHandler,
+    CompressionEngine, load_dataset
 )
 
 # Configure logging system
@@ -74,22 +74,22 @@ class RealEstateInferenceEngine:
             ValueError: If model loading fails
         """
         try:
-            logger.info("🔄 Loading inference models...")
+            logger.info("Loading inference models...")
             
             # Load original model
             if Path(original_model_path).exists():
-                self.original_model, _ = ModelManager.load_model_artifacts(original_model_path)
-                logger.info("✅ Original model loaded successfully")
+                self.original_model, _ = ModelHandler.load_model_artifacts(original_model_path)
+                logger.info("Original model loaded successfully")
             else:
-                logger.warning("⚠️  Original model not found, skipping...")
+                logger.warning("Original model not found, skipping...")
             
             # Load quantized model
             if Path(quantized_model_path).exists():
                 quantized_artifacts = joblib.load(quantized_model_path)
                 self.quantized_parameters = quantized_artifacts['quantized_parameters']
-                logger.info("✅ Quantized model loaded successfully")
+                logger.info("Quantized model loaded successfully")
             else:
-                logger.warning("⚠️  Quantized model not found, skipping...")
+                logger.warning("Quantized model not found, skipping...")
             
             if self.original_model is None and self.quantized_parameters is None:
                 raise ValueError("No models available for inference")
@@ -109,22 +109,22 @@ class RealEstateInferenceEngine:
             Tuple of (X_test, y_test) arrays
         """
         try:
-            logger.info("📊 Preparing inference dataset...")
+            logger.info("Preparing inference dataset...")
             
             # Load dataset
-            X_train, X_test, y_train, y_test = DataManager.load_california_housing_dataset()
+            X_train, X_test, y_train, y_test = DatasetHandler.load_california_housing_dataset()
             
             # Validate data quality
-            DataManager.validate_data_quality(X_train, X_test, y_train, y_test)
+            DatasetHandler.validate_data_quality(X_train, X_test, y_train, y_test)
             
             # Sample data if requested
             if sample_count is not None and sample_count < len(X_test):
                 indices = np.random.choice(len(X_test), sample_count, replace=False)
                 X_test = X_test[indices]
                 y_test = y_test[indices]
-                logger.info(f"📊 Using {sample_count} test samples")
+                logger.info(f"Using {sample_count} test samples")
             else:
-                logger.info(f"📊 Using all {len(X_test)} test samples")
+                logger.info(f"Using all {len(X_test)} test samples")
             
             return X_test, y_test
             
@@ -149,10 +149,10 @@ class RealEstateInferenceEngine:
             if self.original_model is None:
                 raise ValueError("Original model not available")
             
-            logger.info("🔮 Generating predictions with original model...")
+            logger.info("Generating predictions with original model...")
             predictions = self.original_model.predict(X_test)
             
-            logger.info(f"✅ Original model predictions generated: {len(predictions)} samples")
+            logger.info(f"Original model predictions generated: {len(predictions)} samples")
             return predictions
             
         except Exception as e:
@@ -176,7 +176,7 @@ class RealEstateInferenceEngine:
             if self.quantized_parameters is None:
                 raise ValueError("Quantized model not available")
             
-            logger.info("🔮 Generating predictions with quantized model...")
+            logger.info("Generating predictions with quantized model...")
             
             # Dequantize parameters
             quant_coef = self.quantized_parameters['quantized_coefficients']
@@ -185,15 +185,15 @@ class RealEstateInferenceEngine:
             intercept_metadata = self.quantized_parameters['intercept_metadata']
             
             # Dequantize coefficients and intercept
-            dequant_coef = QuantizationEngine.dequantize_parameters(quant_coef, coef_metadata)
-            dequant_intercept = QuantizationEngine.dequantize_parameters(
+            dequant_coef = CompressionEngine.dequantize_parameters(quant_coef, coef_metadata)
+            dequant_intercept = CompressionEngine.dequantize_parameters(
                 np.array([quant_intercept]), intercept_metadata
             )[0]
             
             # Generate predictions manually
             predictions = X_test @ dequant_coef + dequant_intercept
             
-            logger.info(f"✅ Quantized model predictions generated: {len(predictions)} samples")
+            logger.info(f"Quantized model predictions generated: {len(predictions)} samples")
             return predictions
             
         except Exception as e:
@@ -216,9 +216,9 @@ class RealEstateInferenceEngine:
             Dictionary containing performance metrics
         """
         try:
-            logger.info(f"📊 Calculating performance metrics for {model_name}...")
+            logger.info(f"Calculating performance metrics for {model_name}...")
             
-            metrics = MetricsCalculator.calculate_regression_metrics(y_true, y_pred)
+            metrics = PerformanceAnalyzer.calculate_regression_metrics(y_true, y_pred)
             
             # Additional analysis
             residuals = y_true - y_pred
@@ -230,7 +230,7 @@ class RealEstateInferenceEngine:
                 'correlation': np.corrcoef(y_true, y_pred)[0, 1]
             })
             
-            logger.info(f"✅ {model_name} metrics calculated successfully")
+            logger.info(f"{model_name} metrics calculated successfully")
             return metrics
             
         except Exception as e:
@@ -253,7 +253,7 @@ class RealEstateInferenceEngine:
             Dictionary containing comprehensive report
         """
         try:
-            logger.info("📋 Generating comprehensive inference report...")
+            logger.info("Generating comprehensive inference report...")
             
             report = {
                 'dataset_info': {
@@ -297,7 +297,7 @@ class RealEstateInferenceEngine:
                 comparison_metrics = self.compute_performance_metrics(original_pred, quantized_pred, "Model Comparison")
                 report['model_comparison']['comparison'] = comparison_metrics
             
-            logger.info("✅ Inference report generated successfully")
+            logger.info("Inference report generated successfully")
             return report
             
         except Exception as e:
@@ -350,11 +350,16 @@ class RealEstateInferenceEngine:
         print("-" * 60)
         
         for sample in report['sample_predictions'][:10]:
+            orig_pred = sample.get('original_prediction', 'N/A')
+            quant_pred = sample.get('quantized_prediction', 'N/A')
+            orig_err = sample.get('original_error', 'N/A')
+            quant_err = sample.get('quantized_error', 'N/A')
+            
             print(f"{sample['sample_id']:<3} {sample['true_value']:<8.2f} "
-                  f"{sample.get('original_prediction', 'N/A'):<10.2f} "
-                  f"{sample.get('quantized_prediction', 'N/A'):<10.2f} "
-                  f"{sample.get('original_error', 'N/A'):<9.2f} "
-                  f"{sample.get('quantized_error', 'N/A'):<9.2f}")
+                  f"{orig_pred:<10.2f} " if orig_pred != 'N/A' else f"{orig_pred:<10} "
+                  f"{quant_pred:<10.2f} " if quant_pred != 'N/A' else f"{quant_pred:<10} "
+                  f"{orig_err:<9.2f} " if orig_err != 'N/A' else f"{orig_err:<9} "
+                  f"{quant_err:<9.2f} " if quant_err != 'N/A' else f"{quant_err:<9}")
         
         print("=" * 70)
     
@@ -368,7 +373,7 @@ class RealEstateInferenceEngine:
         Returns:
             Comprehensive inference report
         """
-        logger.info("🎯 Starting Real Estate Valuation Inference Pipeline")
+        logger.info("Starting Real Estate Valuation Inference Pipeline")
         logger.info("=" * 60)
         
         try:
@@ -395,7 +400,7 @@ class RealEstateInferenceEngine:
             self.display_inference_summary(report)
             
             logger.info("=" * 60)
-            logger.info("🎉 Inference pipeline completed successfully!")
+            logger.info("Inference pipeline completed successfully!")
             
             return report
             
@@ -418,7 +423,7 @@ def main():
         return report
         
     except Exception as e:
-        logger.error(f"❌ Inference failed: {str(e)}")
+        logger.error(f"Inference failed: {str(e)}")
         sys.exit(1)
 
 

@@ -1,16 +1,16 @@
-# Multi-stage Docker build for California Housing Price Predictor
-# Optimized for production deployment with security and performance considerations
+# Multi-stage container build for Real Estate Valuation System
+# Optimized for production deployment with enhanced security and performance
 
-# Stage 1: Base image with Python and system dependencies
-FROM python:3.9-slim-buster as base
+# Stage 1: Foundation image with Python and system dependencies
+FROM python:3.9-slim-buster as foundation
 
-# Set environment variables for Python optimization
+# Configure Python environment for optimization
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies and security updates
+# Install system dependencies and security patches
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         gcc \
@@ -23,74 +23,74 @@ RUN apt-get update && apt-get upgrade -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
-RUN groupadd -r mluser && useradd -r -g mluser mluser
+# Create non-privileged user for enhanced security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Stage 2: Dependencies installation
-FROM base as dependencies
+# Stage 2: Dependency installation
+FROM foundation as deps
 
-# Set working directory
-WORKDIR /app
+# Set application directory
+WORKDIR /application
 
-# Copy requirements file
+# Copy dependency specification
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python packages
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Stage 3: Application build
-FROM dependencies as builder
+# Stage 3: Application compilation
+FROM deps as compiler
 
 # Copy source code
 COPY src/ ./src/
 COPY models/ ./models/
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/output
+# Create required directories
+RUN mkdir -p /application/logs /application/data /application/output
 
-# Set proper permissions
-RUN chown -R mluser:mluser /app
+# Set appropriate permissions
+RUN chown -R appuser:appuser /application
 
-# Stage 4: Production image
-FROM python:3.9-slim-buster as production
+# Stage 4: Production container
+FROM python:3.9-slim-buster as prod
 
-# Copy Python packages from builder stage
-COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy Python packages from compiler stage
+COPY --from=compiler /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=compiler /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY --from=builder /app /app
+COPY --from=compiler /application /application
 
-# Create non-root user
-RUN groupadd -r mluser && useradd -r -g mluser mluser
+# Create non-privileged user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Set working directory
-WORKDIR /app
+# Set application directory
+WORKDIR /application
 
-# Set environment variables
-ENV PYTHONPATH=/app/src \
+# Configure environment variables
+ENV PYTHONPATH=/application/src \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Create necessary directories and set permissions
-RUN mkdir -p /app/logs /app/data /app/output /app/models && \
-    chown -R mluser:mluser /app
+# Create required directories and set permissions
+RUN mkdir -p /application/logs /application/data /application/output /application/models && \
+    chown -R appuser:appuser /application
 
-# Switch to non-root user
-USER mluser
+# Switch to non-privileged user
+USER appuser
 
-# Health check
+# Health monitoring
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import sys; sys.exit(0)" || exit 1
 
-# Default command
-CMD ["python", "src/predict.py"]
+# Default execution command
+CMD ["python", "src/inference.py"]
 
-# Stage 5: Development image (optional)
-FROM dependencies as development
+# Stage 5: Development container (optional)
+FROM deps as dev
 
-# Install development dependencies
+# Install development tools
 RUN pip install --no-cache-dir \
     pytest \
     pytest-cov \
@@ -98,21 +98,21 @@ RUN pip install --no-cache-dir \
     flake8 \
     mypy
 
-# Copy source code
+# Copy entire codebase
 COPY . .
 
 # Set development environment
-ENV PYTHONPATH=/app/src \
+ENV PYTHONPATH=/application/src \
     PYTHONUNBUFFERED=1
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/output /app/models
+# Create required directories
+RUN mkdir -p /application/logs /application/data /application/output /application/models
 
-# Set proper permissions
-RUN chown -R mluser:mluser /app
+# Set appropriate permissions
+RUN chown -R appuser:appuser /application
 
-# Switch to non-root user
-USER mluser
+# Switch to non-privileged user
+USER appuser
 
-# Development command
+# Development execution command
 CMD ["python", "-m", "pytest", "tests/", "-v"]

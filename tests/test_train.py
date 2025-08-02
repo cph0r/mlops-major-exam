@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Comprehensive Test Suite for California Housing Price Predictor
+Comprehensive Test Suite for Real Estate Valuation System
 
-This module provides extensive testing coverage for the housing price
-prediction pipeline, including unit tests, integration tests, and
+This module provides extensive testing coverage for the real estate
+valuation system, including unit tests, integration tests, and
 performance validation tests.
 
-Author: ML Engineering Team
+Author: Data Science Team
 Date: 2024
 """
 
@@ -29,18 +29,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 # Import modules to test
 from utils import (
-    DataManager, ModelManager, MetricsCalculator, QuantizationEngine,
+    DatasetHandler, ModelHandler, PerformanceAnalyzer, CompressionEngine,
     load_dataset, create_model, save_model, load_model, calculate_metrics
 )
 
 
-class TestDataManagement:
-    """Comprehensive tests for data management functionality."""
+class TestDatasetManagement:
+    """Comprehensive tests for dataset management functionality."""
     
     def test_dataset_loading(self):
         """Test dataset loading with comprehensive validation."""
         # Load dataset
-        X_train, X_test, y_train, y_test = DataManager.load_california_housing_dataset()
+        X_train, X_test, y_train, y_test = DatasetHandler.load_california_housing_dataset()
         
         # Basic validation
         assert X_train is not None, "Training features should not be None"
@@ -72,28 +72,28 @@ class TestDataManagement:
     def test_data_quality_validation(self):
         """Test data quality validation functionality."""
         # Load dataset
-        X_train, X_test, y_train, y_test = DataManager.load_california_housing_dataset()
+        X_train, X_test, y_train, y_test = DatasetHandler.load_california_housing_dataset()
         
         # Test valid data
-        assert DataManager.validate_data_quality(X_train, X_test, y_train, y_test) is True
+        assert DatasetHandler.validate_data_quality(X_train, X_test, y_train, y_test) is True
         
         # Test with NaN values (should raise ValueError)
         X_train_nan = X_train.copy()
         X_train_nan[0, 0] = np.nan
         
         with pytest.raises(ValueError, match="NaN values"):
-            DataManager.validate_data_quality(X_train_nan, X_test, y_train, y_test)
+            DatasetHandler.validate_data_quality(X_train_nan, X_test, y_train, y_test)
         
         # Test with infinite values (should raise ValueError)
         X_train_inf = X_train.copy()
         X_train_inf[0, 0] = np.inf
         
         with pytest.raises(ValueError, match="infinite values"):
-            DataManager.validate_data_quality(X_train_inf, X_test, y_train, y_test)
+            DatasetHandler.validate_data_quality(X_train_inf, X_test, y_train, y_test)
         
         # Test with mismatched shapes (should raise ValueError)
         with pytest.raises(ValueError, match="different dimensions"):
-            DataManager.validate_data_quality(X_train, X_test[:, :7], y_train, y_test)
+            DatasetHandler.validate_data_quality(X_train, X_test[:, :7], y_train, y_test)
 
 
 class TestModelManagement:
@@ -102,13 +102,13 @@ class TestModelManagement:
     def test_model_creation(self):
         """Test model creation with various configurations."""
         # Test default model creation
-        model = ModelManager.create_linear_regression_model()
+        model = ModelHandler.create_linear_regression_model()
         assert isinstance(model, LinearRegression), "Should create LinearRegression instance"
         assert hasattr(model, 'fit'), "Model should have fit method"
         assert hasattr(model, 'predict'), "Model should have predict method"
         
         # Test model with custom parameters
-        model_custom = ModelManager.create_linear_regression_model(
+        model_custom = ModelHandler.create_linear_regression_model(
             fit_intercept=False,
             copy_X=False,
             n_jobs=1,
@@ -129,11 +129,11 @@ class TestModelManagement:
             model_path = os.path.join(temp_dir, "test_model.joblib")
             metadata = {"test_metadata": "test_value", "version": "1.0.0"}
             
-            saved_path = ModelManager.save_model_artifacts(model, model_path, metadata)
+            saved_path = ModelHandler.save_model_artifacts(model, model_path, metadata)
             assert os.path.exists(saved_path), "Model file should be created"
             
             # Test model loading
-            loaded_model, loaded_metadata = ModelManager.load_model_artifacts(saved_path)
+            loaded_model, loaded_metadata = ModelHandler.load_model_artifacts(saved_path)
             assert isinstance(loaded_model, LinearRegression), "Loaded object should be LinearRegression"
             assert loaded_metadata["test_metadata"] == "test_value", "Metadata should be preserved"
             
@@ -146,7 +146,7 @@ class TestModelManagement:
         """Test model loading error handling."""
         # Test loading non-existent file
         with pytest.raises(FileNotFoundError):
-            ModelManager.load_model_artifacts("non_existent_model.joblib")
+            ModelHandler.load_model_artifacts("non_existent_model.joblib")
         
         # Test loading invalid model file
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -156,11 +156,11 @@ class TestModelManagement:
             joblib.dump({"invalid": "data"}, invalid_path)
             
             with pytest.raises(ValueError, match="'model' key not found"):
-                ModelManager.load_model_artifacts(invalid_path)
+                ModelHandler.load_model_artifacts(invalid_path)
 
 
-class TestMetricsCalculation:
-    """Comprehensive tests for metrics calculation functionality."""
+class TestPerformanceAnalysis:
+    """Comprehensive tests for performance analysis functionality."""
     
     def test_regression_metrics_calculation(self):
         """Test comprehensive regression metrics calculation."""
@@ -170,7 +170,7 @@ class TestMetricsCalculation:
         y_pred = y_true + np.random.normal(0, 0.1, 100)  # Add some noise
         
         # Calculate metrics
-        metrics = MetricsCalculator.calculate_regression_metrics(y_true, y_pred)
+        metrics = PerformanceAnalyzer.calculate_regression_metrics(y_true, y_pred)
         
         # Validate metric types and ranges
         assert isinstance(metrics['r2_score'], float), "R² score should be float"
@@ -197,7 +197,7 @@ class TestMetricsCalculation:
         y_true = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
         y_pred = np.array([1.0, 2.0, 3.0, 4.0, 5.0])  # Perfect predictions
         
-        metrics = MetricsCalculator.calculate_regression_metrics(y_true, y_pred)
+        metrics = PerformanceAnalyzer.calculate_regression_metrics(y_true, y_pred)
         
         # Perfect predictions should have specific values
         assert metrics['r2_score'] == 1.0, "Perfect predictions should have R² = 1.0"
@@ -211,7 +211,7 @@ class TestMetricsCalculation:
         y_true = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
         y_pred = np.array([3.0, 3.0, 3.0, 3.0, 3.0])  # Constant predictions
         
-        metrics = MetricsCalculator.calculate_regression_metrics(y_true, y_pred)
+        metrics = PerformanceAnalyzer.calculate_regression_metrics(y_true, y_pred)
         
         # Constant predictions should have specific characteristics
         assert metrics['r2_score'] <= 0.0, "Constant predictions should have R² ≤ 0.0"
@@ -225,91 +225,91 @@ class TestMetricsCalculation:
         y_pred = np.array([1.0, 2.0])  # Different length
         
         with pytest.raises(ValueError, match="different shapes"):
-            MetricsCalculator.calculate_regression_metrics(y_true, y_pred)
+            PerformanceAnalyzer.calculate_regression_metrics(y_true, y_pred)
         
         # Test with empty arrays
         with pytest.raises(ValueError, match="Empty arrays"):
-            MetricsCalculator.calculate_regression_metrics(np.array([]), np.array([]))
+            PerformanceAnalyzer.calculate_regression_metrics(np.array([]), np.array([]))
 
 
-class TestQuantizationEngine:
-    """Comprehensive tests for quantization functionality."""
+class TestCompressionEngine:
+    """Comprehensive tests for compression functionality."""
     
-    def test_basic_quantization(self):
-        """Test basic quantization and dequantization."""
+    def test_basic_compression(self):
+        """Test basic compression and decompression."""
         # Create test data
         original_values = np.array([0.1, 0.5, 1.0, -0.3, 0.8])
         
-        # Quantize
-        quantized, metadata = QuantizationEngine.quantize_parameters(original_values)
+        # Compress
+        compressed, metadata = CompressionEngine.quantize_parameters(original_values)
         
-        # Validate quantization results
-        assert quantized.dtype == np.uint8, "Quantized values should be uint8"
-        assert quantized.shape == original_values.shape, "Shape should be preserved"
-        assert quantized.min() >= 0, "Quantized values should be non-negative"
-        assert quantized.max() <= 255, "Quantized values should be ≤ 255"
+        # Validate compression results
+        assert compressed.dtype == np.uint8, "Compressed values should be uint8"
+        assert compressed.shape == original_values.shape, "Shape should be preserved"
+        assert compressed.min() >= 0, "Compressed values should be non-negative"
+        assert compressed.max() <= 255, "Compressed values should be ≤ 255"
         
-        # Dequantize
-        dequantized = QuantizationEngine.dequantize_parameters(quantized, metadata)
+        # Decompress
+        decompressed = CompressionEngine.dequantize_parameters(compressed, metadata)
         
-        # Validate dequantization
-        assert dequantized.dtype == np.float32, "Dequantized values should be float32"
-        assert dequantized.shape == original_values.shape, "Shape should be preserved"
+        # Validate decompression
+        assert decompressed.dtype == np.float32, "Decompressed values should be float32"
+        assert decompressed.shape == original_values.shape, "Shape should be preserved"
         
         # Check accuracy (should be close to original)
-        max_error = np.max(np.abs(original_values - dequantized))
-        assert max_error < 0.1, f"Quantization error {max_error} should be small"
+        max_error = np.max(np.abs(original_values - decompressed))
+        assert max_error < 0.1, f"Compression error {max_error} should be small"
     
-    def test_quantization_with_zeros(self):
-        """Test quantization with zero values."""
+    def test_compression_with_zeros(self):
+        """Test compression with zero values."""
         original_values = np.zeros(5)
         
-        quantized, metadata = QuantizationEngine.quantize_parameters(original_values)
-        dequantized = QuantizationEngine.dequantize_parameters(quantized, metadata)
+        compressed, metadata = CompressionEngine.quantize_parameters(original_values)
+        decompressed = CompressionEngine.dequantize_parameters(compressed, metadata)
         
         # Zeros should be preserved exactly
-        np.testing.assert_array_almost_equal(original_values, dequantized, decimal=10)
+        np.testing.assert_array_almost_equal(original_values, decompressed, decimal=10)
     
-    def test_quantization_with_constant_values(self):
-        """Test quantization with constant values."""
+    def test_compression_with_constant_values(self):
+        """Test compression with constant values."""
         original_values = np.full(5, 0.5)
         
-        quantized, metadata = QuantizationEngine.quantize_parameters(original_values)
-        dequantized = QuantizationEngine.dequantize_parameters(quantized, metadata)
+        compressed, metadata = CompressionEngine.quantize_parameters(original_values)
+        decompressed = CompressionEngine.dequantize_parameters(compressed, metadata)
         
         # Constant values should be preserved approximately
-        max_error = np.max(np.abs(original_values - dequantized))
-        assert max_error < 0.1, f"Constant value quantization error {max_error} should be small"
+        max_error = np.max(np.abs(original_values - decompressed))
+        assert max_error < 0.1, f"Constant value compression error {max_error} should be small"
     
-    def test_quantization_with_large_values(self):
-        """Test quantization with large values."""
+    def test_compression_with_large_values(self):
+        """Test compression with large values."""
         original_values = np.array([1000.0, -500.0, 750.0])
         
-        quantized, metadata = QuantizationEngine.quantize_parameters(original_values)
-        dequantized = QuantizationEngine.dequantize_parameters(quantized, metadata)
+        compressed, metadata = CompressionEngine.quantize_parameters(original_values)
+        decompressed = CompressionEngine.dequantize_parameters(compressed, metadata)
         
-        # Large values should be quantized with reasonable accuracy
-        max_error = np.max(np.abs(original_values - dequantized))
+        # Large values should be compressed with reasonable accuracy
+        max_error = np.max(np.abs(original_values - decompressed))
         relative_error = max_error / np.max(np.abs(original_values))
-        assert relative_error < 0.01, f"Relative quantization error {relative_error} should be small"
+        assert relative_error < 0.01, f"Relative compression error {relative_error} should be small"
     
-    def test_quantization_methods(self):
-        """Test different quantization methods."""
+    def test_compression_methods(self):
+        """Test different compression methods."""
         original_values = np.array([0.1, 0.5, 1.0, -0.3, 0.8])
         
         # Test adaptive method
-        quant_adaptive, meta_adaptive = QuantizationEngine.quantize_parameters(
+        comp_adaptive, meta_adaptive = CompressionEngine.quantize_parameters(
             original_values, method='adaptive'
         )
         
         # Test with fixed scale factor
-        quant_fixed, meta_fixed = QuantizationEngine.quantize_parameters(
+        comp_fixed, meta_fixed = CompressionEngine.quantize_parameters(
             original_values, scale_factor=100.0, method='fixed'
         )
         
         # Both methods should produce valid results
-        assert quant_adaptive.dtype == np.uint8
-        assert quant_fixed.dtype == np.uint8
+        assert comp_adaptive.dtype == np.uint8
+        assert comp_fixed.dtype == np.uint8
         assert meta_adaptive['method'] == 'adaptive'
         assert meta_fixed['method'] == 'fixed'
 

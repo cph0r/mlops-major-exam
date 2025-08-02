@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-California Housing Price Prediction - Model Training Pipeline
+Real Estate Valuation System - Model Training Engine
 
-This module implements the core training pipeline for the California housing
-price prediction model using advanced linear regression techniques with
-comprehensive logging and performance monitoring.
+This module implements the core training pipeline for the real estate
+valuation system using advanced regression techniques with comprehensive
+logging and performance monitoring.
 
-Author: ML Engineering Team
+Author: Data Science Team
 Date: 2024
 """
 
@@ -21,41 +21,41 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.model_selection import cross_val_score
 import joblib
 
-# Configure logging
+# Configure logging system
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler('training.log')
+        logging.FileHandler('model_training.log')
     ]
 )
 logger = logging.getLogger(__name__)
 
 
-class HousingPricePredictor:
+class RealEstateValuationEngine:
     """
-    Advanced housing price prediction model with comprehensive training pipeline.
+    Advanced real estate valuation model with comprehensive training pipeline.
     
     This class encapsulates the entire training workflow including data loading,
     model training, performance evaluation, and model persistence.
     """
     
-    def __init__(self, model_dir: str = "models"):
+    def __init__(self, artifact_directory: str = "models"):
         """
-        Initialize the housing price predictor.
+        Initialize the real estate valuation engine.
         
         Args:
-            model_dir: Directory to store trained models
+            artifact_directory: Directory to store trained models
         """
-        self.model_dir = Path(model_dir)
-        self.model_dir.mkdir(exist_ok=True)
-        self.model = None
-        self.training_metrics = {}
+        self.artifact_directory = Path(artifact_directory)
+        self.artifact_directory.mkdir(exist_ok=True)
+        self.trained_model = None
+        self.performance_statistics = {}
         
-    def load_and_prepare_data(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load_and_preprocess_data(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        Load and prepare the California housing dataset.
+        Load and preprocess the California housing dataset.
         
         Returns:
             Tuple of (X_train, X_test, y_train, y_test) arrays
@@ -67,12 +67,12 @@ class HousingPricePredictor:
             from sklearn.model_selection import train_test_split
             
             # Fetch dataset
-            housing_data = fetch_california_housing()
-            X, y = housing_data.data, housing_data.target
+            housing_dataset = fetch_california_housing()
+            feature_matrix, target_vector = housing_dataset.data, housing_dataset.target
             
             # Perform train-test split with stratification
             X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42, shuffle=True
+                feature_matrix, target_vector, test_size=0.2, random_state=42, shuffle=True
             )
             
             logger.info(f"✅ Dataset loaded successfully:")
@@ -86,7 +86,7 @@ class HousingPricePredictor:
             logger.error(f"❌ Failed to load dataset: {str(e)}")
             raise
     
-    def create_model(self) -> LinearRegression:
+    def initialize_model(self) -> LinearRegression:
         """
         Create and configure the linear regression model.
         
@@ -97,7 +97,7 @@ class HousingPricePredictor:
         
         try:
             # Initialize model with optimized parameters
-            model = LinearRegression(
+            regression_model = LinearRegression(
                 fit_intercept=True,
                 copy_X=True,
                 n_jobs=-1,  # Use all available cores
@@ -105,13 +105,13 @@ class HousingPricePredictor:
             )
             
             logger.info("✅ Model created successfully")
-            return model
+            return regression_model
             
         except Exception as e:
             logger.error(f"❌ Failed to create model: {str(e)}")
             raise
     
-    def train_model(self, model: LinearRegression, X_train: np.ndarray, y_train: np.ndarray) -> LinearRegression:
+    def execute_training(self, model: LinearRegression, X_train: np.ndarray, y_train: np.ndarray) -> LinearRegression:
         """
         Train the linear regression model with comprehensive validation.
         
@@ -123,13 +123,13 @@ class HousingPricePredictor:
         Returns:
             Trained model
         """
-        logger.info("🚀 Training model with advanced techniques...")
+        logger.info("Training model with advanced techniques...")
         
         try:
             # Perform cross-validation for model validation
-            cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
-            logger.info(f"📊 Cross-validation R² scores: {cv_scores}")
-            logger.info(f"📊 Mean CV R²: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
+            cv_results = cross_val_score(model, X_train, y_train, cv=5, scoring='r2')
+            logger.info(f"Cross-validation R² scores: {cv_results}")
+            logger.info(f"Mean CV R²: {cv_results.mean():.4f} (+/- {cv_results.std() * 2:.4f})")
             
             # Train the model on full training set
             model.fit(X_train, y_train)
@@ -148,7 +148,7 @@ class HousingPricePredictor:
             logger.error(f"❌ Model training failed: {str(e)}")
             raise
     
-    def evaluate_model(self, model: LinearRegression, X_test: np.ndarray, y_test: np.ndarray) -> dict:
+    def assess_model_performance(self, model: LinearRegression, X_test: np.ndarray, y_test: np.ndarray) -> dict:
         """
         Evaluate model performance with comprehensive metrics.
         
@@ -164,38 +164,38 @@ class HousingPricePredictor:
         
         try:
             # Generate predictions
-            y_pred = model.predict(X_test)
+            predicted_values = model.predict(X_test)
             
             # Calculate comprehensive metrics
-            metrics = {
-                'r2_score': r2_score(y_test, y_pred),
-                'mse': mean_squared_error(y_test, y_pred),
-                'rmse': np.sqrt(mean_squared_error(y_test, y_pred)),
-                'mae': mean_absolute_error(y_test, y_pred),
-                'mape': np.mean(np.abs((y_test - y_pred) / y_test)) * 100
+            performance_metrics = {
+                'r2_score': r2_score(y_test, predicted_values),
+                'mse': mean_squared_error(y_test, predicted_values),
+                'rmse': np.sqrt(mean_squared_error(y_test, predicted_values)),
+                'mae': mean_absolute_error(y_test, predicted_values),
+                'mape': np.mean(np.abs((y_test - predicted_values) / y_test)) * 100
             }
             
             # Log performance metrics
             logger.info("📈 Model Performance Metrics:")
-            logger.info(f"   R² Score: {metrics['r2_score']:.4f}")
-            logger.info(f"   Mean Squared Error: {metrics['mse']:.4f}")
-            logger.info(f"   Root Mean Squared Error: {metrics['rmse']:.4f}")
-            logger.info(f"   Mean Absolute Error: {metrics['mae']:.4f}")
-            logger.info(f"   Mean Absolute Percentage Error: {metrics['mape']:.2f}%")
+            logger.info(f"   R² Score: {performance_metrics['r2_score']:.4f}")
+            logger.info(f"   Mean Squared Error: {performance_metrics['mse']:.4f}")
+            logger.info(f"   Root Mean Squared Error: {performance_metrics['rmse']:.4f}")
+            logger.info(f"   Mean Absolute Error: {performance_metrics['mae']:.4f}")
+            logger.info(f"   Mean Absolute Percentage Error: {performance_metrics['mape']:.2f}%")
             
             # Performance validation
-            if metrics['r2_score'] < 0.5:
+            if performance_metrics['r2_score'] < 0.5:
                 logger.warning("⚠️  Model performance below threshold (R² < 0.5)")
             else:
                 logger.info("✅ Model performance meets requirements")
             
-            return metrics
+            return performance_metrics
             
         except Exception as e:
             logger.error(f"❌ Model evaluation failed: {str(e)}")
             raise
     
-    def save_model(self, model: LinearRegression, metrics: dict) -> str:
+    def persist_model(self, model: LinearRegression, metrics: dict) -> str:
         """
         Save the trained model and metadata.
         
@@ -225,45 +225,45 @@ class HousingPricePredictor:
             }
             
             # Save model artifacts
-            model_path = self.model_dir / "housing_price_model.joblib"
-            joblib.dump(model_artifacts, model_path)
+            model_filepath = self.artifact_directory / "real_estate_valuation_model.joblib"
+            joblib.dump(model_artifacts, model_filepath)
             
-            logger.info(f"✅ Model saved successfully to: {model_path}")
-            return str(model_path)
+            logger.info(f"✅ Model saved successfully to: {model_filepath}")
+            return str(model_filepath)
             
         except Exception as e:
             logger.error(f"❌ Failed to save model: {str(e)}")
             raise
     
-    def run_training_pipeline(self) -> Tuple[LinearRegression, dict]:
+    def execute_training_workflow(self) -> Tuple[LinearRegression, dict]:
         """
         Execute the complete training pipeline.
         
         Returns:
             Tuple of (trained_model, performance_metrics)
         """
-        logger.info("🎯 Starting Housing Price Prediction Training Pipeline")
+        logger.info("🎯 Starting Real Estate Valuation Training Pipeline")
         logger.info("=" * 60)
         
         try:
-            # Step 1: Load and prepare data
-            X_train, X_test, y_train, y_test = self.load_and_prepare_data()
+            # Step 1: Load and preprocess data
+            X_train, X_test, y_train, y_test = self.load_and_preprocess_data()
             
-            # Step 2: Create model
-            model = self.create_model()
+            # Step 2: Initialize model
+            model = self.initialize_model()
             
-            # Step 3: Train model
-            trained_model = self.train_model(model, X_train, y_train)
+            # Step 3: Execute training
+            trained_model = self.execute_training(model, X_train, y_train)
             
-            # Step 4: Evaluate model
-            metrics = self.evaluate_model(trained_model, X_test, y_test)
+            # Step 4: Assess model performance
+            metrics = self.assess_model_performance(trained_model, X_test, y_test)
             
-            # Step 5: Save model
-            model_path = self.save_model(trained_model, metrics)
+            # Step 5: Persist model
+            model_path = self.persist_model(trained_model, metrics)
             
             # Store metrics for later use
-            self.training_metrics = metrics
-            self.model = trained_model
+            self.performance_statistics = metrics
+            self.trained_model = trained_model
             
             logger.info("=" * 60)
             logger.info("🎉 Training pipeline completed successfully!")
@@ -281,15 +281,15 @@ def main():
     Main entry point for the training pipeline.
     """
     try:
-        # Initialize predictor
-        predictor = HousingPricePredictor()
+        # Initialize valuation engine
+        valuation_engine = RealEstateValuationEngine()
         
-        # Run training pipeline
-        model, metrics = predictor.run_training_pipeline()
+        # Execute training workflow
+        model, metrics = valuation_engine.execute_training_workflow()
         
         # Print summary
         print("\n" + "=" * 60)
-        print("🏠 CALIFORNIA HOUSING PRICE PREDICTOR - TRAINING SUMMARY")
+        print("🏠 REAL ESTATE VALUATION SYSTEM - TRAINING SUMMARY")
         print("=" * 60)
         print(f"📊 R² Score: {metrics['r2_score']:.4f}")
         print(f"📊 Mean Squared Error: {metrics['mse']:.4f}")
